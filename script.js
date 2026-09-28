@@ -1,32 +1,41 @@
 document.addEventListener('DOMContentLoaded', () => {
     const generateBtn = document.getElementById('generate-btn');
     const textInput = document.getElementById('text-input');
+    const charCount = document.getElementById('char-count');
     const canvas = document.getElementById('word-cloud-canvas');
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const maxWordsSelect = document.getElementById('max-words');
+    const colorThemeSelect = document.getElementById('color-theme');
 
     // Stop words to ignore in frequency calculation
-    const stopWords = new Set(['the', 'and', 'to', 'of', 'a', 'in', 'is', 'it', 'you', 'that', 'for', 'on', 'with', 'as', 'are', 'be', 'this', 'was', 'or', 'an', 'by', 'not', 'but', 'at', 'from', 'they', 'we', 'about', 'which', 'their', 'has', 'have', 'would', 'what', 'can', 'if', 'all']);
+    const stopWords = new Set(['the', 'and', 'to', 'of', 'a', 'in', 'it', 'you', 'that', 'for', 'on', 'with', 'as', 'are', 'be', 'this', 'was', 'or', 'an', 'by', 'not', 'but', 'at', 'from', 'they', 'we', 'about', 'which', 'their', 'has', 'have', 'would', 'what', 'can', 'if', 'all']);
 
-    // Vibrant color palette for the words
-    const colors = [
-        '#8b5cf6', '#ec4899', '#3b82f6', '#10b981', '#f59e0b', 
-        '#ef4444', '#06b6d4', '#d946ef', '#f43f5e', '#84cc16'
-    ];
+    // Themes
+    const themes = {
+        default: ['#1d4ed8', '#059669', '#db2777', '#7c3aed', '#0891b2', '#ea580c'],
+        blues: ['#1e3a8a', '#1e40af', '#1d4ed8', '#2563eb', '#3b82f6', '#60a5fa'],
+        warm: ['#991b1b', '#b91c1c', '#dc2626', '#ef4444', '#f87171', '#f59e0b', '#d97706']
+    };
+
+    // Update char count
+    textInput.addEventListener('input', () => {
+        charCount.textContent = textInput.value.length;
+    });
 
     generateBtn.addEventListener('click', () => {
         const text = textInput.value;
         if (!text.trim()) return;
         
         // Add loading state to button
-        const originalText = generateBtn.innerHTML;
-        generateBtn.innerHTML = '<span>Generating...</span>';
+        const originalHTML = generateBtn.innerHTML;
+        generateBtn.innerHTML = '<i class="ph ph-spinner-gap"></i> Generating...';
         generateBtn.style.opacity = '0.7';
 
         // Use requestAnimationFrame to allow UI to update before heavy processing
         requestAnimationFrame(() => {
             setTimeout(() => {
                 generateWordCloud(text);
-                generateBtn.innerHTML = originalText;
+                generateBtn.innerHTML = originalHTML;
                 generateBtn.style.opacity = '1';
             }, 50);
         });
@@ -37,20 +46,49 @@ document.addEventListener('DOMContentLoaded', () => {
         const frequencies = {};
 
         words.forEach(word => {
-            if (word.length > 2 && !stopWords.has(word)) {
+            if (word.length > 1 && !stopWords.has(word)) {
                 frequencies[word] = (frequencies[word] || 0) + 1;
             }
         });
+        
+        // For matching the reference image's mixed casing ("Java", "Python", "development"):
+        // We will keep original casing of the most frequent form.
+        const originalWords = text.match(/\b[a-zA-Z]+\b/g) || [];
+        const casingMap = {};
+        originalWords.forEach(w => {
+            const lower = w.toLowerCase();
+            if(!casingMap[lower]) casingMap[lower] = {};
+            casingMap[lower][w] = (casingMap[lower][w] || 0) + 1;
+        });
 
-        // Convert to array and sort by frequency
+        const limit = parseInt(maxWordsSelect.value) || 50;
+
+        // Convert to array, get best casing, sort by frequency
         return Object.entries(frequencies)
             .sort((a, b) => b[1] - a[1])
-            .slice(0, 100); // Limit to top 100 words
+            .slice(0, limit)
+            .map(([word, freq]) => {
+                // Find most common casing
+                let bestCasing = word;
+                let maxCasingFreq = 0;
+                if(casingMap[word]) {
+                    for(const [cased, count] of Object.entries(casingMap[word])) {
+                        if(count > maxCasingFreq) {
+                            maxCasingFreq = count;
+                            bestCasing = cased;
+                        }
+                    }
+                }
+                return [bestCasing, freq];
+            });
     }
 
     function generateWordCloud(text) {
         const wordData = getWordFrequencies(text);
-        if (wordData.length === 0) return;
+        if (wordData.length === 0) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            return;
+        }
 
         // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -63,21 +101,31 @@ document.addEventListener('DOMContentLoaded', () => {
         const centerY = canvas.height / 2;
         
         const placedBoxes = [];
+        const selectedTheme = colorThemeSelect.value || 'default';
+        const colors = themes[selectedTheme];
+
+        // Ensure canvas width/height are correct for clear rendering
+        // Match CSS logical size
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight || 400;
 
         // Simple Spiral Layout Algorithm
-        wordData.forEach(([word, freq]) => {
-            // Normalize size between 16px and 80px
-            const fontSize = minFreq === maxFreq 
-                ? 40 
-                : 16 + ((freq - minFreq) / (maxFreq - minFreq)) * 64;
+        wordData.forEach(([word, freq], index) => {
+            // Normalize size between 16px and 90px
+            let fontSize = 24;
+            if (maxFreq !== minFreq) {
+                fontSize = 18 + ((freq - minFreq) / (maxFreq - minFreq)) * 90;
+            }
 
-            ctx.font = `bold ${fontSize}px 'Outfit', sans-serif`;
-            const color = colors[Math.floor(Math.random() * colors.length)];
+            ctx.font = `bold ${fontSize}px 'Inter', sans-serif`;
+            
+            // Try to assign consistent colors based on index to look nice
+            const color = colors[index % colors.length];
             
             // Measure word bounding box
             const metrics = ctx.measureText(word);
             const wordWidth = metrics.width;
-            const wordHeight = fontSize * 1.2; // Approximation
+            const wordHeight = fontSize * 1.1; // Approximation
             
             let angle = 0;
             let radius = 0;
@@ -85,9 +133,9 @@ document.addEventListener('DOMContentLoaded', () => {
             let x, y;
 
             // Archimedean spiral search for an empty spot
-            while (!placed && radius < canvas.width) {
-                x = centerX + radius * Math.cos(angle) - wordWidth / 2;
-                y = centerY + radius * Math.sin(angle) + wordHeight / 4;
+            while (!placed && radius < Math.max(canvas.width, canvas.height)) {
+                x = canvas.width / 2 + radius * Math.cos(angle) - wordWidth / 2;
+                y = canvas.height / 2 + radius * Math.sin(angle) + wordHeight / 4;
 
                 const box = {
                     x: x,
@@ -99,10 +147,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Check collisions
                 let collision = false;
                 for (const pb of placedBoxes) {
-                    if (box.x < pb.x + pb.w &&
-                        box.x + box.w > pb.x &&
-                        box.y < pb.y + pb.h &&
-                        box.y + box.h > pb.y) {
+                    // add a small padding
+                    const padding = 4;
+                    if (box.x < pb.x + pb.w + padding &&
+                        box.x + box.w > pb.x - padding &&
+                        box.y < pb.y + pb.h + padding &&
+                        box.y + box.h > pb.y - padding) {
                         collision = true;
                         break;
                     }
@@ -138,9 +188,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Default generation for preview
-    const sampleText = "DevOps is the combination of cultural philosophies, practices, and tools that increases an organization's ability to deliver applications and services at high velocity: evolving and improving products at a faster pace than organizations using traditional software development and infrastructure management processes. This speed enables organizations to better serve their customers and compete more effectively in the market. Under a DevOps model, development and operations teams are no longer siloed. Sometimes, these two teams are merged into a single team where the engineers work across the entire application lifecycle, from development and test to deployment to operations, and develop a range of skills not limited to a single function. Quality assurance and security teams may also become more tightly integrated with development and operations and throughout the application lifecycle. When security is the focus of everyone on a DevOps team, this is sometimes referred to as DevSecOps. These teams use practices to automate processes that historically have been manual and slow. They use a technology stack and tooling which help them operate and evolve applications quickly and reliably. These tools also help engineers independently accomplish tasks (for example, deploying code or provisioning infrastructure) that normally would have required help from other teams, and this further increases a team's velocity.";
+    const sampleText = "Java is powerful.\nJava is popular.\nJava makes development easier.\nPython is also popular.\nCoding in Python is used in technology projects today. Programming language development is easier today.";
+    
     textInput.value = sampleText;
+    charCount.textContent = sampleText.length;
+    
+    // Slight delay to ensure canvas is sized
     setTimeout(() => {
         generateWordCloud(sampleText);
     }, 100);
+
+    // Handle window resize for canvas
+    window.addEventListener('resize', () => {
+        generateWordCloud(textInput.value);
+    });
 });

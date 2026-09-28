@@ -3,37 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Word Cloud Generator | DevOps Project</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+    <title>Word Cloud Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
 </head>
 <body>
-    <div class="background-orbs">
-        <div class="orb orb-1"></div>
-        <div class="orb orb-2"></div>
-        <div class="orb orb-3"></div>
-    </div>
+    <nav class="navbar">
+        <div class="logo-area">
+            <i class="ph-fill ph-cloud logo-icon"></i>
+            <span class="logo-text">Word Cloud <span>Generator</span></span>
+        </div>
+        <div class="nav-links">
+            <a href="#" class="active"><i class="ph ph-house"></i> Home</a>
+            <a href="#"><i class="ph ph-info"></i> About</a>
+            <a href="#"><i class="ph ph-question"></i> Help</a>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <h1>Turn Your Text into a <span>Word Cloud</span></h1>
+        <p>Paste your text below, click generate, and see the most frequent words<br>visualized in a beautiful word cloud.</p>
+    </header>
 
     <main class="container">
-        <header>
-            <h1>Word <span>Cloud</span> Generator</h1>
-            <p>Text frequency visualizer using HTML5 Canvas.</p>
-        </header>
-
         <div class="app-grid">
-            <div class="controls glass-panel">
-                <div class="input-group">
-                    <label for="text-input">Enter your text below:</label>
-                    <textarea id="text-input" placeholder="Paste your text here to generate a beautiful word cloud... e.g. DevOps Jenkins Docker CI CD Git GitHub Pipeline Automation Containerization"></textarea>
+            <div class="panel input-panel">
+                <div class="panel-header">
+                    <div class="header-icon-wrap"><i class="ph ph-file-text"></i></div>
+                    <h2>Enter Your Text</h2>
                 </div>
-                <button id="generate-btn" class="glow-btn">
-                    <span>Generate Cloud</span>
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13 5L20 12M20 12L13 19M20 12H4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <p class="panel-desc">Type or paste your text below. We'll analyze the word frequency and create a word cloud for you.</p>
+                
+                <textarea id="text-input"></textarea>
+                <div class="char-counter"><span id="char-count">0</span> characters</div>
+                
+                <div class="options-header">
+                    <i class="ph-fill ph-gear"></i>
+                    <h3>Options</h3>
+                </div>
+                
+                <div class="options-grid">
+                    <div class="option-group">
+                        <label>Max Words</label>
+                        <select id="max-words">
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="200">200</option>
+                        </select>
+                    </div>
+                    <div class="option-group">
+                        <label>Color Theme</label>
+                        <select id="color-theme">
+                            <option value="default">Default</option>
+                            <option value="blues">Blues</option>
+                            <option value="warm">Warm</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button id="generate-btn" class="primary-btn">
+                    <i class="ph ph-magic-wand"></i> Generate Word Cloud
                 </button>
             </div>
 
-            <div class="canvas-container glass-panel">
-                <canvas id="word-cloud-canvas" width="800" height="500"></canvas>
+            <div class="panel preview-panel">
+                <div class="panel-header">
+                    <div class="header-icon-wrap"><i class="ph ph-bounding-box"></i></div>
+                    <h2>Word Cloud Preview</h2>
+                </div>
+                <div class="canvas-container">
+                    <canvas id="word-cloud-canvas" width="600" height="400"></canvas>
+                </div>
             </div>
         </div>
     </main>
