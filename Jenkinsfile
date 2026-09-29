@@ -22,9 +22,9 @@ pipeline {
                 // In a more complex JS app, we would run npm install && npm test here
                 echo "Running static analysis/tests..."
                 // Simple check to ensure required files exist
-                sh 'test -f index.html'
-                sh 'test -f style.css'
-                sh 'test -f script.js'
+                bat 'IF NOT EXIST index.html EXIT /B 1'
+                bat 'IF NOT EXIST style.css EXIT /B 1'
+                bat 'IF NOT EXIST script.js EXIT /B 1'
             }
         }
 
@@ -32,7 +32,7 @@ pipeline {
             steps {
                 echo "Building Docker Image..."
                 // Build the image using the Dockerfile in the current directory
-                sh "docker build -t ${IMAGE_NAME}:${env.BUILD_ID} -t ${IMAGE_NAME}:latest ."
+                bat "docker build -t ${IMAGE_NAME}:${env.BUILD_ID} -t ${IMAGE_NAME}:latest ."
             }
         }
 
